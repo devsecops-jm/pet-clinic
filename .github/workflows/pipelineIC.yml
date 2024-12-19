@@ -27,7 +27,7 @@ jobs:
       - name: Validate and Configure build.gradle
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONAR}}
         run: |
           if [ -f "build.gradle" ]; then
             echo "Archivo build.gradle encontrado." 
@@ -47,7 +47,7 @@ jobs:
         id: validate-project
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONAR}}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           echo "Verificando si el proyecto $REPO_NAME existe en SonarCloud..."
@@ -87,7 +87,7 @@ jobs:
         if: env.project_created == 'true'
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONAR}}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           echo "Realizando análisis inicial en la rama main..."
@@ -95,14 +95,14 @@ jobs:
             -Dsonar.projectKey=$REPO_NAME \
             -Dsonar.organization=devsecops-jm \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=$DSO_TK_SONARCLOUD \
+            -Dsonar.token=$DSO_TK_SONAR\
             -Dsonar.branch.name=feature-jm
 
       - name: Perform Branch Analysis
         if: env.project_created == 'false'
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONAR}}
           REPO_NAME: ${{ github.event.repository.name }}
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
@@ -111,13 +111,13 @@ jobs:
             -Dsonar.projectKey=$REPO_NAME \
             -Dsonar.organization=devsecops-jm \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=$DSO_TK_SONARCLOUD \
+            -Dsonar.token=$DSO_TK_SONAR\
             -Dsonar.branch.name=$BRANCH_NAME
 
       - name: Validate Quality Gate
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONAR}}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           echo "Validando el estado del Quality Gate..."
