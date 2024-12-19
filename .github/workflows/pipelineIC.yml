@@ -1,4 +1,4 @@
-name: SonarCloud Workflow
+name: DevSecOps-jm Sonar Cloud
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
       - name: Validate and Configure build.gradle
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          TK_SONARCLOUD: ${{ secrets.TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
         run: |
           if [ -f "build.gradle" ]; then
             echo "Archivo build.gradle encontrado." 
@@ -47,16 +47,16 @@ jobs:
         id: validate-project
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          TK_SONARCLOUD: ${{ secrets.TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           echo "Verificando si el proyecto $REPO_NAME existe en SonarCloud..."
-          response=$(curl -s -o /dev/null -w "%{http_code}" -u "$TK_SONARCLOUD:" \
+          response=$(curl -s -o /dev/null -w "%{http_code}" -u "$DSO_TK_SONARCLOUD:" \
             "https://sonarcloud.io/api/projects/search?projects=$REPO_NAME")
 
           if [ "$response" -ne 200 ]; then
             echo "El proyecto no existe. Creándolo en SonarCloud..."
-            create_response=$(curl -s -w "%{http_code}" -o /dev/null -X POST -u "$TK_SONARCLOUD:" \
+            create_response=$(curl -s -w "%{http_code}" -o /dev/null -X POST -u "$DSO_TK_SONARCLOUD:" \
               "https://sonarcloud.io/api/projects/create" \
               -d "name=$REPO_NAME" \
               -d "project=$REPO_NAME" \
@@ -68,7 +68,7 @@ jobs:
             fi
 
             echo "Estableciendo la rama [feature-jm] [main] como predeterminada..."
-            curl -s -f -X POST -u "$TK_SONARCLOUD:" \
+            curl -s -f -X POST -u "$DSO_TK_SONARCLOUD:" \
               "https://sonarcloud.io/api/project_branches/rename" \
               -d "name=feature-jm" \
               -d "project=$REPO_NAME"
@@ -87,7 +87,7 @@ jobs:
         if: env.project_created == 'true'
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          TK_SONARCLOUD: ${{ secrets.TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           echo "Realizando análisis inicial en la rama main..."
@@ -95,14 +95,14 @@ jobs:
             -Dsonar.projectKey=$REPO_NAME \
             -Dsonar.organization=devsecops-jm \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=$TK_SONARCLOUD \
+            -Dsonar.token=$DSO_TK_SONARCLOUD \
             -Dsonar.branch.name=feature-jm
 
       - name: Perform Branch Analysis
         if: env.project_created == 'false'
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          TK_SONARCLOUD: ${{ secrets.TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
           REPO_NAME: ${{ github.event.repository.name }}
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
@@ -111,26 +111,26 @@ jobs:
             -Dsonar.projectKey=$REPO_NAME \
             -Dsonar.organization=devsecops-jm \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=$TK_SONARCLOUD \
+            -Dsonar.token=$DSO_TK_SONARCLOUD \
             -Dsonar.branch.name=$BRANCH_NAME
 
       - name: Validate Quality Gate
         env:
           #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          TK_SONARCLOUD: ${{ secrets.TK_SONARCLOUD }}
+          DSO_TK_SONARCLOUD: ${{ secrets.DSO_TK_SONARCLOUD }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           echo "Validando el estado del Quality Gate..."
-          analysisId=$(curl -s -u "$TK_SONARCLOUD:" \
+          analysisId=$(curl -s -u "$DSO_TK_SONARCLOUD:" \
             "https://sonarcloud.io/api/ce/component?component=$REPO_NAME" | jq -r '.current.analysisId')
 
-          qualityGateStatus=$(curl -s -u "$TK_SONARCLOUD:" \
+          qualityGateStatus=$(curl -s -u "$DSO_TK_SONARCLOUD:" \
             "https://sonarcloud.io/api/qualitygates/project_status?analysisId=$analysisId" | jq -r '.projectStatus.status')
 
           if [ "$qualityGateStatus" != "OK" ]; then
             echo "El proyecto no cumple con el Quality Gate: $qualityGateStatus."
             echo "Verificando vulnerabilidades críticas..."
-            vulnerabilities=$(curl -s -u "$TK_SONARCLOUD:" \
+            vulnerabilities=$(curl -s -u "$DSO_TK_SONARCLOUD:" \
               "https://sonarcloud.io/api/issues/search?componentKeys=$REPO_NAME&types=VULNERABILITY&severities=CRITICAL,BLOCKER" | jq -r '.total')
 
             if [ "$vulnerabilities" -gt 0 ]; then
